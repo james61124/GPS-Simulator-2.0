@@ -1,0 +1,112 @@
+2026-02-27 23:45:41,563 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:45:48,123 | INFO | django.utils.autoreload | MainThread | /Users/james/james/GPS-Simulator/backend/gpsSimulator/gpsSimulator/settings.py changed, reloading.
+2026-02-27 23:45:48,413 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:46:42,714 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:46:46,427 | ERROR | django.request | Thread-1 (process_request_thread) | Internal Server Error: /api/devices
+2026-02-27 23:47:53,554 | INFO | django.utils.autoreload | MainThread | /Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py changed, reloading.
+2026-02-27 23:47:53,923 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:47:56,704 | ERROR | django.request | Thread-1 (process_request_thread) | Internal Server Error: /api/devices
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 213, in stream_tell
+    return stream.tell()
+           ^^^^^^^^^^^
+AttributeError: 'SafeStreamSocket' object has no attribute 'tell'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py", line 19, in list_devices
+    data = service.list_connected_devices()
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/service.py", line 152, in list_connected_devices
+    for d in list_devices():
+             ~~~~~~~~~~~~^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 409, in list_devices
+    mux = create_mux(usbmux_address=usbmux_address)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 405, in create_mux
+    return MuxConnection.create(usbmux_address=usbmux_address)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 180, in create
+    response = usbmuxd_response.parse_stream(sock)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 416, in parse_stream
+    return self._parsereport(stream, context, "(parsing)")
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 428, in _parsereport
+    obj = self._parse(stream, context, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 4869, in _parse
+    substream = BytesIOWithOffsets.from_reading(stream, length, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 241, in from_reading
+    offset = stream_tell(stream, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 215, in stream_tell
+    raise StreamError("stream.tell() failed", path=path)
+construct.core.StreamError: Error in path (parsing)
+stream.tell() failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/views/decorators/http.py", line 43, in inner
+    return func(request, *args, **kwargs)
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py", line 22, in list_devices
+    logger.exception(f"devices failed err={e}")
+    ^^^^^^
+NameError: name 'logger' is not defined
+2026-02-27 23:48:14,789 | INFO | django.utils.autoreload | MainThread | /Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py changed, reloading.
+2026-02-27 23:48:15,136 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:48:17,840 | ERROR | django.request | Thread-1 (process_request_thread) | Internal Server Error: /api/devices
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 213, in stream_tell
+    return stream.tell()
+           ^^^^^^^^^^^
+AttributeError: 'SafeStreamSocket' object has no attribute 'tell'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py", line 20, in list_devices
+    data = service.list_connected_devices()
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/service.py", line 152, in list_connected_devices
+    for d in list_devices():
+             ~~~~~~~~~~~~^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 409, in list_devices
+    mux = create_mux(usbmux_address=usbmux_address)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 405, in create_mux
+    return MuxConnection.create(usbmux_address=usbmux_address)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/pymobiledevice3/usbmux.py", line 180, in create
+    response = usbmuxd_response.parse_stream(sock)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 416, in parse_stream
+    return self._parsereport(stream, context, "(parsing)")
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 428, in _parsereport
+    obj = self._parse(stream, context, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 4869, in _parse
+    substream = BytesIOWithOffsets.from_reading(stream, length, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 241, in from_reading
+    offset = stream_tell(stream, path)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/construct/core.py", line 215, in stream_tell
+    raise StreamError("stream.tell() failed", path=path)
+construct.core.StreamError: Error in path (parsing)
+stream.tell() failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/james/james/GPS-Simulator/backend/.venv/lib/python3.14/site-packages/django/views/decorators/http.py", line 43, in inner
+    return func(request, *args, **kwargs)
+  File "/Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py", line 23, in list_devices
+    logger.exception(f"devices failed err={e}")
+    ^^^^^^
+NameError: name 'logger' is not defined
+2026-02-27 23:48:46,144 | INFO | django.utils.autoreload | MainThread | /Users/james/james/GPS-Simulator/backend/gpsSimulator/locaSim/views.py changed, reloading.
+2026-02-27 23:48:46,500 | INFO | django.utils.autoreload | MainThread | Watching for file changes with StatReloader
+2026-02-27 23:48:48,493 | ERROR | django.request | Thread-1 (process_request_thread) | Internal Server Error: /api/devices
+2026-02-28 00:00:27,957 | DEBUG | asyncio | MainThread | Using selector: KqueueSelector
+2026-02-28 00:00:30,306 | DEBUG | asyncio | MainThread | Using selector: KqueueSelector
