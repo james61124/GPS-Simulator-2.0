@@ -86,7 +86,7 @@ export default function SinglePanel({
   async function stopSim() {
     setStatus("")
     try {
-      await callBackend<any>("/api/stop_location", { method: "POST" })
+      await callBackend<any>("/api/location/stop", { method: "POST" })
       setSimulating(false)
       setStatus("Stopped")
     } catch (e: any) {
