@@ -3,9 +3,9 @@
 
 import dynamic from "next/dynamic"
 import { useState } from "react"
-import { callBackend } from "@/app/lib/api"
-import { resolveTextToPoint, type LatLng } from "@/app/lib/geo"
-import type { Waypoint as MapWaypoint } from "@/app/components/MapRoute"
+import { callBackend } from "@/lib/api"
+import { resolveTextToPoint, type LatLng } from "@/lib/geo"
+import type { Waypoint as MapWaypoint } from "@/components/MapRoute"
 
 const MapRouteView = dynamic(() => import("./MapRoute"), { ssr: false })
 

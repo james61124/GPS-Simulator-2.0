@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { callBackend } from "@/app/lib/api"
+import { callBackend } from "@/lib/api"
 
 export type DeviceInfo = {
   Identifier: string

@@ -13,12 +13,43 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+
+def _csv_env(name: str, default: str) -> list[str]:
+    raw = os.getenv(name, default)
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+_REPO_ROOT = BASE_DIR.parent.parent
+load_dotenv(_REPO_ROOT / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
+
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-DEVICE_SERVICE_URL = os.getenv("DEVICE_SERVICE_URL", "http://127.0.0.1:9100")
+_DEVICE_DEFAULT = "http://127.0.0.1:9100"
+DEVICE_SERVICE_URL = (
+    os.getenv("DEVICE_SERVICE_URL") or os.getenv("DEVICE_SERVICE_BASE_URL") or _DEVICE_DEFAULT
+).rstrip("/")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or os.getenv("NEXT_PUBLIC_GOOGLE_CLIENT_ID") or ""
+
+_DEFAULT_FRONTEND_ORIGINS = (
+    "http://localhost:3000,http://127.0.0.1:3000,"
+    "http://localhost:8080,http://127.0.0.1:8080"
+)
+CORS_ALLOWED_ORIGINS = _csv_env("FRONTEND_ORIGINS", _DEFAULT_FRONTEND_ORIGINS)
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = _csv_env("CSRF_TRUSTED_ORIGINS", ",".join(CORS_ALLOWED_ORIGINS))
+
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 LOGGING = {
     "version": 1,
@@ -43,12 +74,15 @@ LOGGING = {
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wx_s7k!%19zx6zix5u0_2lj^b!6pw8=2qx+c65ah$dcxrx2rts'
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-wx_s7k!%19zx6zix5u0_2lj^b!6pw8=2qx+c65ah$dcxrx2rts",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "True").strip().lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = _csv_env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,django")
 
 
 # Application definition
@@ -60,12 +94,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "corsheaders",
     "locaSim",
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -97,9 +133,17 @@ WSGI_APPLICATION = 'gpsSimulator.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME", "gpsdb"),
+        "USER": os.getenv("DB_USER", "gpsuser"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "gpspass"),
+        "HOST": os.getenv("DB_HOST", "mariadb"),
+        "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 

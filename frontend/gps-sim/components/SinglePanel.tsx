@@ -3,8 +3,8 @@
 
 import dynamic from "next/dynamic"
 import { useState } from "react"
-import { callBackend } from "@/app/lib/api"
-import { resolveTextToPoint, type LatLng } from "@/app/lib/geo"
+import { callBackend } from "@/lib/api"
+import { resolveTextToPoint, type LatLng } from "@/lib/geo"
 
 const MapView = dynamic(() => import("./Map"), { ssr: false })
 
