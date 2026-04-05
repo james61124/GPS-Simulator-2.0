@@ -3,15 +3,16 @@ import uuid
 import logging
 import httpx
 
+from django.conf import settings
+from django.db import transaction
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 from django.views.decorators.http import require_http_methods
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
-from .models import AppUser
+from .models import AppUser, SavedRoute, SavedRouteWaypoint
 
 log = logging.getLogger("walksim.api")
 
@@ -38,6 +39,62 @@ def _serialize_user(user: AppUser) -> dict:
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
+
+
+def _serialize_saved_route(route: SavedRoute, include_waypoints: bool = False) -> dict:
+    data = {
+        "id": route.id,
+        "name": route.name,
+        "loop": route.loop,
+        "speed_kmh": route.speed_kmh,
+        "interval_s": route.interval_s,
+        "pause_s": route.pause_s,
+        "from_current": route.from_current,
+        "waypoint_count": route.waypoints.count() if hasattr(route, "waypoints") else 0,
+        "created_at": route.created_at.isoformat() if route.created_at else None,
+        "updated_at": route.updated_at.isoformat() if route.updated_at else None,
+    }
+
+    if include_waypoints:
+        data["waypoints"] = [
+            {
+                "id": wp.id,
+                "order_index": wp.order_index,
+                "lat": wp.lat,
+                "lng": wp.lng,
+                "text": wp.text,
+            }
+            for wp in route.waypoints.all().order_by("order_index")
+        ]
+
+    return data
+
+
+def _get_authenticated_user(request):
+    authenticated = bool(request.session.get("authenticated"))
+    user_id = request.session.get("user_id")
+
+    if not authenticated or not user_id:
+        return None
+
+    try:
+        return AppUser.objects.get(id=user_id, is_active=True)
+    except AppUser.DoesNotExist:
+        request.session.flush()
+        return None
+
+
+def _require_login(request):
+    user = _get_authenticated_user(request)
+    if not user:
+        return None, JsonResponse(
+            {
+                "authenticated": False,
+                "error": "login required",
+            },
+            status=401,
+        )
+    return user, None
 
 
 def _proxy(method: str, path: str, rid: str, payload: dict | None = None):
@@ -305,3 +362,202 @@ def auth_logout(request):
     request.session.flush()
     log.info(f"[{rid}] logout success")
     return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def saved_routes(request):
+    user, auth_error = _require_login(request)
+    if auth_error:
+        return auth_error
+
+    if request.method == "GET":
+        routes = (
+            SavedRoute.objects.filter(user=user)
+            .prefetch_related("waypoints")
+            .order_by("-updated_at")
+        )
+
+        return JsonResponse(
+            {
+                "routes": [
+                    _serialize_saved_route(route, include_waypoints=False)
+                    for route in routes
+                ]
+            }
+        )
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    name = (body.get("name") or "").strip()
+    waypoints = body.get("waypoints") or []
+    loop = bool(body.get("loop", False))
+    speed_kmh = body.get("speed_kmh", 18.0)
+    interval_s = body.get("interval_s", 0.5)
+    pause_s = body.get("pause_s", 0.0)
+    from_current = bool(body.get("from_current", False))
+
+    if not name:
+        return JsonResponse({"error": "name is required"}, status=400)
+
+    if not isinstance(waypoints, list) or len(waypoints) < 2:
+        return JsonResponse({"error": "need at least 2 waypoints"}, status=400)
+
+    try:
+        with transaction.atomic():
+            route = SavedRoute.objects.create(
+                user=user,
+                name=name,
+                loop=loop,
+                speed_kmh=float(speed_kmh),
+                interval_s=float(interval_s),
+                pause_s=float(pause_s),
+                from_current=from_current,
+            )
+
+            waypoint_rows = []
+            for idx, wp in enumerate(waypoints):
+                lat = wp.get("lat")
+                lng = wp.get("lng")
+                text = wp.get("text") or ""
+
+                if lat is None or lng is None:
+                    raise ValueError("each waypoint must include lat and lng")
+
+                waypoint_rows.append(
+                    SavedRouteWaypoint(
+                        saved_route=route,
+                        order_index=idx,
+                        lat=float(lat),
+                        lng=float(lng),
+                        text=text,
+                    )
+                )
+
+            SavedRouteWaypoint.objects.bulk_create(waypoint_rows)
+
+        route = SavedRoute.objects.prefetch_related("waypoints").get(id=route.id)
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "route": _serialize_saved_route(route, include_waypoints=True),
+            },
+            status=201,
+        )
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        log.exception(f"create saved route failed err={e}")
+        return JsonResponse({"error": "failed to save route"}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+def saved_route_detail(request, route_id: int):
+    user, auth_error = _require_login(request)
+    if auth_error:
+        return auth_error
+
+    try:
+        route = (
+            SavedRoute.objects
+            .filter(user=user, id=route_id)
+            .prefetch_related("waypoints")
+            .get()
+        )
+    except SavedRoute.DoesNotExist:
+        return JsonResponse({"error": "route not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse(
+            {
+                "route": _serialize_saved_route(route, include_waypoints=True),
+            }
+        )
+
+    if request.method == "DELETE":
+        route.delete()
+        return JsonResponse({"ok": True})
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    name = body.get("name")
+    waypoints = body.get("waypoints")
+    loop = body.get("loop")
+    speed_kmh = body.get("speed_kmh")
+    interval_s = body.get("interval_s")
+    pause_s = body.get("pause_s")
+    from_current = body.get("from_current")
+
+    try:
+        with transaction.atomic():
+            if name is not None:
+                name = str(name).strip()
+                if not name:
+                    return JsonResponse({"error": "name cannot be empty"}, status=400)
+                route.name = name
+
+            if loop is not None:
+                route.loop = bool(loop)
+
+            if speed_kmh is not None:
+                route.speed_kmh = float(speed_kmh)
+
+            if interval_s is not None:
+                route.interval_s = float(interval_s)
+
+            if pause_s is not None:
+                route.pause_s = float(pause_s)
+
+            if from_current is not None:
+                route.from_current = bool(from_current)
+
+            route.save()
+
+            if waypoints is not None:
+                if not isinstance(waypoints, list) or len(waypoints) < 2:
+                    return JsonResponse({"error": "need at least 2 waypoints"}, status=400)
+
+                route.waypoints.all().delete()
+
+                waypoint_rows = []
+                for idx, wp in enumerate(waypoints):
+                    lat = wp.get("lat")
+                    lng = wp.get("lng")
+                    text = wp.get("text") or ""
+
+                    if lat is None or lng is None:
+                        raise ValueError("each waypoint must include lat and lng")
+
+                    waypoint_rows.append(
+                        SavedRouteWaypoint(
+                            saved_route=route,
+                            order_index=idx,
+                            lat=float(lat),
+                            lng=float(lng),
+                            text=text,
+                        )
+                    )
+
+                SavedRouteWaypoint.objects.bulk_create(waypoint_rows)
+
+        route = SavedRoute.objects.prefetch_related("waypoints").get(id=route.id)
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "route": _serialize_saved_route(route, include_waypoints=True),
+            }
+        )
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        log.exception(f"update saved route failed err={e}")
+        return JsonResponse({"error": "failed to update route"}, status=500)

@@ -1,11 +1,23 @@
-// app/components/RoutePanel.tsx
 "use client"
 
 import dynamic from "next/dynamic"
-import { useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { callBackend } from "@/lib/api"
 import { resolveTextToPoint, type LatLng } from "@/lib/geo"
 import type { Waypoint as MapWaypoint } from "@/components/MapRoute"
+import {
+  createSavedRoute,
+  deleteSavedRoute,
+  getSavedRoute,
+  listSavedRoutes,
+  updateSavedRoute,
+  type SavedRouteSummary,
+} from "@/lib/savedRoutes"
+import RouteDetailsCard from "@/components/route/RouteDetailsCard"
+import SavedRoutesCard from "@/components/route/SavedRoutesCard"
+import WaypointEditorCard from "@/components/route/WaypointEditorCard"
+
+
 
 const MapRouteView = dynamic(() => import("./MapRoute"), { ssr: false })
 
@@ -15,7 +27,12 @@ type RoutePreviewResponse = {
   dense?: LatLng[]
 }
 
-type Waypoint = { id: string; lat: number; lng: number; text: string }
+type Waypoint = {
+  id: string
+  lat: number
+  lng: number
+  text: string
+}
 
 export default function RoutePanel({
   connected,
@@ -40,10 +57,69 @@ export default function RoutePanel({
   const [loop, setLoop] = useState<boolean>(false)
   const [fromCurrent, setFromCurrent] = useState<boolean>(false)
 
+  const [routeName, setRouteName] = useState("")
+  const [currentRouteId, setCurrentRouteId] = useState<number | null>(null)
+
+  const [savedRoutes, setSavedRoutes] = useState<SavedRouteSummary[]>([])
+  const [savedRoutesLoading, setSavedRoutesLoading] = useState(false)
+  const [savedRoutesBusyId, setSavedRoutesBusyId] = useState<number | null>(null)
+  const [saveBusy, setSaveBusy] = useState(false)
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState("")
+
   const newId = () => crypto.randomUUID()
+
+  const previewState = useMemo(() => {
+    if (routeRunning) return "running"
+    if (routeLine && routeLine.length >= 2) return "ready"
+    return "draft"
+  }, [routeRunning, routeLine])
+
+  const hasUnsavedChanges = useMemo(() => {
+    return buildSnapshot() !== lastSavedSnapshot
+  }, [routeName, loop, speedKmh, intervalS, pauseS, fromCurrent, waypoints, lastSavedSnapshot])
 
   function routePointsPayload() {
     return waypoints.map((w) => ({ lat: w.lat, lng: w.lng }))
+  }
+
+  function toSavePayload() {
+    return {
+      name: routeName.trim(),
+      loop,
+      speed_kmh: speedKmh,
+      interval_s: intervalS,
+      pause_s: pauseS,
+      from_current: fromCurrent,
+      waypoints: waypoints.map((w) => ({
+        lat: w.lat,
+        lng: w.lng,
+        text: w.text,
+      })),
+    }
+  }
+
+  function buildSnapshot(payload = toSavePayload()) {
+    return JSON.stringify(payload)
+  }
+
+  function markCurrentAsSaved(payload = toSavePayload()) {
+    setLastSavedSnapshot(buildSnapshot(payload))
+  }
+
+  function resetEditor() {
+    setCurrentRouteId(null)
+    setRouteName("")
+    setWaypoints([])
+    setPendingPoint(null)
+    setPendingText("")
+    setRouteLine(null)
+    setRouteRunning(false)
+    setLoop(false)
+    setSpeedKmh(18)
+    setIntervalS(0.5)
+    setPauseS(0.0)
+    setFromCurrent(false)
+    setLastSavedSnapshot("")
   }
 
   function clearRoute() {
@@ -54,18 +130,34 @@ export default function RoutePanel({
     setRouteRunning(false)
   }
 
-  async function routePreview() {
-    if (waypoints.length < 2) {
-      setStatus("Need at least 2 waypoints")
+  async function refreshSavedRoutes() {
+    setSavedRoutesLoading(true)
+    try {
+      const routes = await listSavedRoutes()
+      setSavedRoutes(routes)
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to load saved routes")
+    } finally {
+      setSavedRoutesLoading(false)
+    }
+  }
+
+  async function routePreview(customWaypoints?: Waypoint[], opts?: { silent?: boolean }) {
+    const points = customWaypoints ?? waypoints
+
+    if (points.length < 2) {
+      if (!opts?.silent) setStatus("Need at least 2 waypoints")
       return
     }
+
     setRouteBusy(true)
-    setStatus("")
+    if (!opts?.silent) setStatus("")
+
     try {
       const resp = await callBackend<RoutePreviewResponse>("/api/location/route/preview", {
         method: "POST",
         body: JSON.stringify({
-          points: routePointsPayload(),
+          points: points.map((w) => ({ lat: w.lat, lng: w.lng })),
           speed_kmh: speedKmh,
           interval_s: intervalS,
           pause_s: pauseS,
@@ -77,14 +169,14 @@ export default function RoutePanel({
       const line = resp.dense || resp.full_route || null
       if (!line || line.length < 2) {
         setRouteLine(null)
-        setStatus("Preview returned empty route")
+        if (!opts?.silent) setStatus("Preview returned empty route")
         return
       }
 
       setRouteLine(line)
-      setStatus("Route preview ready")
+      if (!opts?.silent) setStatus("Route preview ready")
     } catch (e: any) {
-      setStatus(e?.message ?? "Route preview failed")
+      if (!opts?.silent) setStatus(e?.message ?? "Route preview failed")
     } finally {
       setRouteBusy(false)
     }
@@ -137,23 +229,247 @@ export default function RoutePanel({
     }
   }
 
+  async function handleSaveAsNew() {
+    if (!routeName.trim()) {
+      setStatus("Please enter route name")
+      return
+    }
+    if (waypoints.length < 2) {
+      setStatus("Need at least 2 waypoints")
+      return
+    }
+
+    setSaveBusy(true)
+    setStatus("")
+    try {
+      const saved = await createSavedRoute(toSavePayload())
+      setCurrentRouteId(saved.id)
+      setRouteName(saved.name)
+      markCurrentAsSaved({
+        name: saved.name,
+        loop: saved.loop,
+        speed_kmh: saved.speed_kmh,
+        interval_s: saved.interval_s,
+        pause_s: saved.pause_s,
+        from_current: saved.from_current,
+        waypoints: saved.waypoints.map((w) => ({
+          lat: w.lat,
+          lng: w.lng,
+          text: w.text,
+        })),
+      })
+      await refreshSavedRoutes()
+      setStatus("Route saved")
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to save route")
+    } finally {
+      setSaveBusy(false)
+    }
+  }
+
+  async function handleUpdateCurrent() {
+    if (!currentRouteId) {
+      setStatus("No saved route selected")
+      return
+    }
+    if (!routeName.trim()) {
+      setStatus("Please enter route name")
+      return
+    }
+    if (waypoints.length < 2) {
+      setStatus("Need at least 2 waypoints")
+      return
+    }
+
+    setSaveBusy(true)
+    setStatus("")
+    try {
+      const updated = await updateSavedRoute(currentRouteId, toSavePayload())
+      setRouteName(updated.name)
+      markCurrentAsSaved({
+        name: updated.name,
+        loop: updated.loop,
+        speed_kmh: updated.speed_kmh,
+        interval_s: updated.interval_s,
+        pause_s: updated.pause_s,
+        from_current: updated.from_current,
+        waypoints: updated.waypoints.map((w) => ({
+          lat: w.lat,
+          lng: w.lng,
+          text: w.text,
+        })),
+      })
+      await refreshSavedRoutes()
+      setStatus("Route updated")
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to update route")
+    } finally {
+      setSaveBusy(false)
+    }
+  }
+
+  async function handleApplySavedRoute(routeId: number) {
+    setSavedRoutesBusyId(routeId)
+    setStatus("")
+    try {
+      const route = await getSavedRoute(routeId)
+
+      const nextWaypoints: Waypoint[] = route.waypoints.map((wp) => ({
+        id: crypto.randomUUID(),
+        lat: wp.lat,
+        lng: wp.lng,
+        text: wp.text || `${wp.lat}, ${wp.lng}`,
+      }))
+
+      setCurrentRouteId(route.id)
+      setRouteName(route.name)
+      setLoop(route.loop)
+      setSpeedKmh(route.speed_kmh)
+      setIntervalS(route.interval_s)
+      setPauseS(route.pause_s)
+      setFromCurrent(route.from_current)
+      setWaypoints(nextWaypoints)
+      setPendingPoint(null)
+      setPendingText("")
+      setRouteLine(null)
+      setRouteRunning(false)
+      setLastSavedSnapshot(
+        JSON.stringify({
+          name: route.name,
+          loop: route.loop,
+          speed_kmh: route.speed_kmh,
+          interval_s: route.interval_s,
+          pause_s: route.pause_s,
+          from_current: route.from_current,
+          waypoints: route.waypoints.map((wp) => ({
+            lat: wp.lat,
+            lng: wp.lng,
+            text: wp.text || `${wp.lat}, ${wp.lng}`,
+          })),
+        }),
+      )
+
+      if (nextWaypoints.length >= 2) {
+        setTimeout(() => {
+          routePreview(nextWaypoints, { silent: true })
+        }, 0)
+      }
+
+      setStatus(`Applied "${route.name}"`)
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to load route")
+    } finally {
+      setSavedRoutesBusyId(null)
+    }
+  }
+
+  async function handleDeleteSavedRoute(routeId: number) {
+    const target = savedRoutes.find((r) => r.id === routeId)
+    const ok = window.confirm(`Delete route "${target?.name ?? routeId}"?`)
+    if (!ok) return
+
+    setSavedRoutesBusyId(routeId)
+    setStatus("")
+    try {
+      await deleteSavedRoute(routeId)
+
+      if (currentRouteId === routeId) {
+        resetEditor()
+      }
+
+      await refreshSavedRoutes()
+      setStatus("Route deleted")
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to delete route")
+    } finally {
+      setSavedRoutesBusyId(null)
+    }
+  }
+
+  async function handleDuplicateSavedRoute(routeId: number) {
+    setSavedRoutesBusyId(routeId)
+    setStatus("")
+
+    try {
+      const route = await getSavedRoute(routeId)
+
+      const duplicatedName = `${route.name} Copy`
+
+      const saved = await createSavedRoute({
+        name: duplicatedName,
+        loop: route.loop,
+        speed_kmh: route.speed_kmh,
+        interval_s: route.interval_s,
+        pause_s: route.pause_s,
+        from_current: route.from_current,
+        waypoints: route.waypoints.map((wp) => ({
+          lat: wp.lat,
+          lng: wp.lng,
+          text: wp.text || `${wp.lat}, ${wp.lng}`,
+        })),
+      })
+
+      await refreshSavedRoutes()
+      setStatus(`Duplicated as "${saved.name}"`)
+    } catch (e: any) {
+      setStatus(e?.message ?? "Failed to duplicate route")
+    } finally {
+      setSavedRoutesBusyId(null)
+    }
+  }
+
+  useEffect(() => {
+    refreshSavedRoutes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return
+      e.preventDefault()
+      e.returnValue = ""
+    }
+
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [hasUnsavedChanges])
+
   return (
-    <div className="mt-6 grid gap-6 md:grid-cols-5">
-      <div className="md:col-span-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between px-2 pb-3">
+    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,420px)]">
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 px-2 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Route Map</div>
-            <div className="text-xs text-slate-500">Click map to pick pending point, Add to insert into waypoints</div>
+            <div className="text-sm font-semibold text-slate-900">Route Studio</div>
+            <div className="text-xs text-slate-500">
+              Click map to add points, build route preview, then simulate
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                previewState === "running"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : previewState === "ready"
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {previewState === "running"
+                ? "Running"
+                : previewState === "ready"
+                  ? "Preview ready"
+                  : "Draft"}
+            </span>
+
             <button
-              onClick={routePreview}
+              onClick={() => routePreview()}
               disabled={routeBusy || waypoints.length < 2}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
             >
               {routeBusy ? "Building…" : "Build"}
             </button>
+
             <button
               onClick={routeSimulate}
               disabled={routeBusy || !connected || waypoints.length < 2}
@@ -161,6 +477,7 @@ export default function RoutePanel({
             >
               {routeRunning ? "Running" : "Simulate"}
             </button>
+
             <button
               onClick={routeStop}
               disabled={routeBusy || !routeRunning}
@@ -171,7 +488,7 @@ export default function RoutePanel({
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200">
           <MapRouteView
             waypoints={waypoints.map((w) => ({ id: w.id, lat: w.lat, lng: w.lng } satisfies MapWaypoint))}
             pendingPoint={pendingPoint}
@@ -190,231 +507,68 @@ export default function RoutePanel({
               setWaypoints((prev) => prev.filter((w) => w.id !== id))
               setRouteLine(null)
             }}
-            className="h-[360px] w-full"
+            className="h-[420px] w-full"
           />
         </div>
       </div>
 
-      <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="text-sm font-semibold text-slate-900">Route Controls</div>
-        <div className="mt-1 text-xs text-slate-500">Pick pending point then Add, reorder points, Build to preview road route</div>
+      <div className="space-y-6">
+        <RouteDetailsCard
+          routeName={routeName}
+          setRouteName={setRouteName}
+          loop={loop}
+          setLoop={setLoop}
+          currentRouteId={currentRouteId}
+          onSave={handleSaveAsNew}
+          onUpdate={handleUpdateCurrent}
+          onNew={resetEditor}
+          saveBusy={saveBusy}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
 
-        <div className="mt-4 grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            {/* <div>
-              <label className="block text-xs font-medium text-slate-700">Speed (km/h)</label>
-              <input
-                value={String(speedKmh)}
-                onChange={(e) => setSpeedKmh(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-                inputMode="decimal"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700">Interval (s)</label>
-              <input
-                value={String(intervalS)}
-                onChange={(e) => setIntervalS(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-                inputMode="decimal"
-              />
-            </div>
-          </div>
+        <SavedRoutesCard
+          routes={savedRoutes}
+          currentId={currentRouteId}
+          loading={savedRoutesLoading}
+          busyId={savedRoutesBusyId}
+          onRefresh={refreshSavedRoutes}
+          onApply={handleApplySavedRoute}
+          onDelete={handleDeleteSavedRoute}
+          onDuplicate={handleDuplicateSavedRoute}
+        />
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium text-slate-700">Pause at end (s)</label>
-              <input
-                value={String(pauseS)}
-                onChange={(e) => setPauseS(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-                inputMode="decimal"
-              />
-            </div> */}
-            <div className="flex items-end gap-3">
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                <input type="checkbox" checked={loop} onChange={(e) => setLoop(e.target.checked)} />
-                Loop
-              </label>
-              {/* <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                <input type="checkbox" checked={fromCurrent} onChange={(e) => setFromCurrent(e.target.checked)} />
-                From current
-              </label> */}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-sm font-semibold text-slate-900">Pending point</div>
-            <div className="mt-1 text-xs text-slate-500">Click map or Resolve from text then Add</div>
-
-            <input
-              value={pendingText}
-              onChange={(e) => setPendingText(e.target.value)}
-              placeholder="(lat, lng) or address"
-              className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-            />
-
-            <div className="mt-2 flex gap-2">
-              <button
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-                onClick={async () => {
-                  setStatus("")
-                  const p = pendingText.trim() ? await resolveTextToPoint(pendingText) : null
-                  if (!p) {
-                    setStatus("Cannot resolve pending point")
-                    return
-                  }
-                  setPendingPoint(p)
-                }}
-              >
-                Resolve
-              </button>
-
-              <button
-                className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
-                disabled={!pendingPoint}
-                onClick={() => {
-                  if (!pendingPoint) return
-                  setWaypoints((prev) => [
-                    ...prev,
-                    {
-                      id: newId(),
-                      lat: pendingPoint.lat,
-                      lng: pendingPoint.lng,
-                      text: pendingText || `${pendingPoint.lat}, ${pendingPoint.lng}`,
-                    },
-                  ])
-                  setPendingPoint(null)
-                  setPendingText("")
-                  setRouteLine(null)
-                }}
-              >
-                Add waypoint
-              </button>
-            </div>
-
-            {pendingPoint && (
-              <div className="mt-3 text-[11px] font-mono text-slate-700">
-                {pendingPoint.lat.toFixed(6)}, {pendingPoint.lng.toFixed(6)}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-sm font-semibold text-slate-900">Waypoints</div>
-
-            <div className="mt-3 space-y-2">
-              {waypoints.length === 0 ? (
-                <div className="text-xs text-slate-500">No waypoints</div>
-              ) : (
-                waypoints.map((w, idx) => (
-                  <div key={w.id} className="rounded-xl bg-white p-3 shadow-sm border border-slate-200">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-xs font-semibold text-slate-700">#{idx + 1}</div>
-                      <div className="flex gap-2">
-                        <button
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
-                          disabled={idx === 0}
-                          onClick={() => {
-                            setWaypoints((prev) => {
-                              const a = [...prev]
-                              ;[a[idx - 1], a[idx]] = [a[idx], a[idx - 1]]
-                              return a
-                            })
-                            setRouteLine(null)
-                          }}
-                        >
-                          Up
-                        </button>
-                        <button
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
-                          disabled={idx === waypoints.length - 1}
-                          onClick={() => {
-                            setWaypoints((prev) => {
-                              const a = [...prev]
-                              ;[a[idx], a[idx + 1]] = [a[idx + 1], a[idx]]
-                              return a
-                            })
-                            setRouteLine(null)
-                          }}
-                        >
-                          Down
-                        </button>
-                        <button
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50"
-                          onClick={() => {
-                            setWaypoints((prev) => prev.filter((x) => x.id !== w.id))
-                            setRouteLine(null)
-                          }}
-                        >
-                          Del
-                        </button>
-                      </div>
-                    </div>
-
-                    <input
-                      value={w.text}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        setWaypoints((prev) => prev.map((x) => (x.id === w.id ? { ...x, text: v } : x)))
-                      }}
-                      placeholder="(lat, lng) or address"
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300"
-                    />
-
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <div className="text-[11px] font-mono text-slate-600">
-                        {w.lat.toFixed(6)}, {w.lng.toFixed(6)}
-                      </div>
-
-                      <button
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50"
-                        onClick={async () => {
-                          setStatus("")
-                          const p = await resolveTextToPoint(w.text)
-                          if (!p) {
-                            setStatus("Cannot resolve waypoint")
-                            return
-                          }
-                          setWaypoints((prev) => prev.map((x) => (x.id === w.id ? { ...x, lat: p.lat, lng: p.lng } : x)))
-                          setRouteLine(null)
-                        }}
-                      >
-                        Resolve
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <button
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
-                disabled={waypoints.length === 0 || routeBusy}
-                onClick={clearRoute}
-              >
-                Clear
-              </button>
-              <button
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
-                disabled={waypoints.length < 2 || routeBusy}
-                onClick={routePreview}
-              >
-                Build
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
-            <div className="font-semibold text-slate-900">API</div>
-            <div className="mt-1 font-mono text-[11px] leading-relaxed">
-              POST /api/location/route/preview <br />
-              POST /api/location/route/simulate <br />
-              POST /api/location/route/stop
-            </div>
-          </div>
-        </div>
+        <WaypointEditorCard
+          pendingPoint={pendingPoint}
+          pendingText={pendingText}
+          setPendingText={setPendingText}
+          onResolvePending={(p) => {
+            setPendingPoint(p)
+          }}
+          onAddWaypoint={() => {
+            if (!pendingPoint) return
+            setWaypoints((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                lat: pendingPoint.lat,
+                lng: pendingPoint.lng,
+                text: pendingText || `${pendingPoint.lat}, ${pendingPoint.lng}`,
+              },
+            ])
+            setPendingPoint(null)
+            setPendingText("")
+            setRouteLine(null)
+          }}
+          waypoints={waypoints}
+          setWaypoints={setWaypoints}
+          onClear={() => {
+            clearRoute()
+          }}
+          setRouteLineCleared={() => {
+            setRouteLine(null)
+          }}
+          setStatus={setStatus}
+        />
       </div>
     </div>
   )

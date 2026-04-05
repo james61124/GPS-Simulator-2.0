@@ -14,4 +14,7 @@ urlpatterns = [
     path("auth/google", views.auth_google),
     path("auth/session", views.auth_session),
     path("auth/logout", views.auth_logout),
+
+    path("saved-routes", views.saved_routes, name="saved_routes"),
+    path("saved-routes/<int:route_id>", views.saved_route_detail, name="saved_route_detail"),
 ]
