@@ -37,43 +37,55 @@ export default function SavedRoutesCard({
   }, [routes, query])
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">My Routes</div>
-          <div className="mt-1 text-xs text-slate-500">
-            Search, apply, duplicate, or delete saved routes
+    <section className="space-y-4">
+      <section className="rounded-[24px] border border-[#e7eee1] bg-[#fbfcf8] p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">📦 Saved routes</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Search, apply, duplicate, or delete your saved routes
+            </div>
           </div>
+
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="rounded-full border border-[#d9e5cf] bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-[#f8fbf4] disabled:opacity-50"
+            >
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
+          )}
         </div>
 
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-        )}
-      </div>
+        <div className="mt-4">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search routes"
+            className="w-full rounded-2xl border border-[#d9e5cf] bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-[#b8cfa8]"
+          />
+        </div>
+      </section>
 
-      <div className="mt-4">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search routes"
-          className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-        />
-      </div>
-
-      <div className="mt-4 space-y-3">
+      <section className="space-y-3">
         {loading && routes.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-            Loading routes...
+          <div className="rounded-[24px] border border-[#e7eee1] bg-white px-4 py-8 text-center">
+            <div className="text-sm font-semibold text-slate-900">Loading routes…</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Gathering your saved route library
+            </div>
           </div>
         ) : filteredRoutes.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-            {routes.length === 0 ? "No saved routes yet" : "No matching routes"}
+          <div className="rounded-[24px] border border-dashed border-[#d9e5cf] bg-[#fbfcf8] px-4 py-8 text-center">
+            <div className="text-sm font-semibold text-slate-900">
+              {routes.length === 0 ? "No saved routes yet" : "No matching routes"}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {routes.length === 0
+                ? "Save your current route to build your library 🌱"
+                : "Try another keyword"}
+            </div>
           </div>
         ) : (
           filteredRoutes.map((route) => {
@@ -83,8 +95,10 @@ export default function SavedRoutesCard({
             return (
               <div
                 key={route.id}
-                className={`rounded-2xl border p-4 transition ${
-                  active ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white"
+                className={`rounded-[24px] border p-4 shadow-sm transition ${
+                  active
+                    ? "border-[#b8cfa8] bg-[#f6fbf1]"
+                    : "border-[#e7eee1] bg-white hover:bg-[#fcfdf9]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -95,23 +109,23 @@ export default function SavedRoutesCard({
                     <div className="mt-1 text-xs text-slate-500">
                       {route.waypoint_count} waypoints · {route.loop ? "Loop" : "One-way"}
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-400">
+                    <div className="mt-2 text-[11px] text-slate-400">
                       Updated {formatTime(route.updated_at)}
                     </div>
                   </div>
 
                   {active && (
-                    <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">
+                    <span className="rounded-full bg-[#7bc47f] px-3 py-1 text-[10px] font-semibold text-white shadow-sm">
                       Current
                     </span>
                   )}
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     onClick={() => onApply(route.id)}
                     disabled={busy}
-                    className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+                    className="rounded-full bg-[#7bc47f] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-50"
                   >
                     {busy ? "Loading…" : "Apply"}
                   </button>
@@ -119,7 +133,7 @@ export default function SavedRoutesCard({
                   <button
                     onClick={() => onDuplicate(route.id)}
                     disabled={busy}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                    className="rounded-full border border-[#d9e5cf] bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-[#f8fbf4] disabled:opacity-50"
                   >
                     Duplicate
                   </button>
@@ -127,7 +141,7 @@ export default function SavedRoutesCard({
                   <button
                     onClick={() => onDelete(route.id)}
                     disabled={busy}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                    className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-rose-600 shadow-sm hover:bg-rose-50 disabled:opacity-50"
                   >
                     Delete
                   </button>
@@ -136,7 +150,7 @@ export default function SavedRoutesCard({
             )
           })
         )}
-      </div>
+      </section>
     </section>
   )
 }

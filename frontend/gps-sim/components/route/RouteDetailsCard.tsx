@@ -24,17 +24,17 @@ export default function RouteDetailsCard({
   hasUnsavedChanges?: boolean
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-[24px] border border-[#e7eee1] bg-[#fbfcf8] p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold text-slate-900">Route Details</div>
+          <div className="text-sm font-semibold text-slate-900">🌿 Route details</div>
           <div className="mt-1 text-xs text-slate-500">
-            Name this route, save it, or update current saved version
+            Name this route, then save it or update current version
           </div>
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
+          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
             {currentRouteId ? `Saved #${currentRouteId}` : "New draft"}
           </span>
 
@@ -47,19 +47,40 @@ export default function RouteDetailsCard({
       </div>
 
       <div className="mt-4">
-        <label className="block text-xs font-medium text-slate-700">Route name</label>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Route name
+        </label>
         <input
           value={routeName}
           onChange={(e) => setRouteName(e.target.value)}
           placeholder="Morning commute"
-          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
+          className="mt-2 w-full rounded-2xl border border-[#d9e5cf] bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-[#b8cfa8]"
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-          <input type="checkbox" checked={loop} onChange={(e) => setLoop(e.target.checked)} />
-          Loop route
+      <div className="mt-4 rounded-2xl border border-[#e7eee1] bg-white px-4 py-3 shadow-sm">
+        <label className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Loop route</div>
+            <div className="mt-0.5 text-xs text-slate-500">
+              Return to starting point after last waypoint
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setLoop(!loop)}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+              loop ? "bg-[#7bc47f]" : "bg-slate-200"
+            }`}
+            aria-pressed={loop}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${
+                loop ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
         </label>
       </div>
 
@@ -67,7 +88,7 @@ export default function RouteDetailsCard({
         <button
           onClick={onSave}
           disabled={saveBusy}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-full bg-[#7bc47f] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-50"
         >
           {saveBusy ? "Saving…" : "Save as new"}
         </button>
@@ -75,7 +96,7 @@ export default function RouteDetailsCard({
         <button
           onClick={onUpdate}
           disabled={saveBusy || !currentRouteId}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+          className="rounded-full border border-[#d9e5cf] bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-[#f8fbf4] disabled:opacity-50"
         >
           Update current
         </button>
@@ -83,7 +104,7 @@ export default function RouteDetailsCard({
         <button
           onClick={onNew}
           disabled={saveBusy}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+          className="rounded-full bg-[#f1d98c] px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:brightness-95 disabled:opacity-50"
         >
           New draft
         </button>

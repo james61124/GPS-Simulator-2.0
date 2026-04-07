@@ -33,64 +33,75 @@ export default function WaypointEditorCard({
   setStatus: (s: string) => void
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-900">Waypoint Editor</div>
-      <div className="mt-1 text-xs text-slate-500">
-        Click map or paste address / coordinates, then build route preview
-      </div>
+    <section className="space-y-4">
+      <section className="rounded-[24px] border border-[#e7eee1] bg-[#fbfcf8] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">📌 Add waypoint</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Click map or resolve from text input
+            </div>
+          </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-        <div className="text-sm font-semibold text-slate-900">Add waypoint</div>
-        <div className="mt-1 text-xs text-slate-500">Click map or resolve from text input</div>
-
-        <input
-          value={pendingText}
-          onChange={(e) => setPendingText(e.target.value)}
-          placeholder="(lat, lng) or address"
-          className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-        />
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-            onClick={async () => {
-              setStatus("")
-              const p = pendingText.trim() ? await resolveTextToPoint(pendingText) : null
-              if (!p) {
-                setStatus("Cannot resolve pending point")
-                return
-              }
-              onResolvePending(p)
-            }}
-          >
-            Resolve
-          </button>
-
-          <button
-            className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
-            disabled={!pendingPoint}
-            onClick={onAddWaypoint}
-          >
-            Add waypoint
-          </button>
+          {pendingPoint && (
+            <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+              Point ready
+            </span>
+          )}
         </div>
 
-        {pendingPoint && (
-          <div className="mt-3 text-[11px] font-mono text-slate-700">
-            {pendingPoint.lat.toFixed(6)}, {pendingPoint.lng.toFixed(6)}
-          </div>
-        )}
-      </div>
+        <div className="mt-4 space-y-3">
+          <input
+            value={pendingText}
+            onChange={(e) => setPendingText(e.target.value)}
+            placeholder="(lat, lng) or address"
+            className="w-full rounded-2xl border border-[#d9e5cf] bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-[#b8cfa8]"
+          />
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="rounded-full border border-[#d9e5cf] bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-[#f8fbf4]"
+              onClick={async () => {
+                setStatus("")
+                const p = pendingText.trim() ? await resolveTextToPoint(pendingText) : null
+                if (!p) {
+                  setStatus("Cannot resolve pending point")
+                  return
+                }
+                onResolvePending(p)
+              }}
+            >
+              Resolve
+            </button>
+
+            <button
+              className="rounded-full bg-[#7bc47f] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-50"
+              disabled={!pendingPoint}
+              onClick={onAddWaypoint}
+            >
+              Add waypoint
+            </button>
+          </div>
+
+          {pendingPoint && (
+            <div className="rounded-2xl bg-white px-3 py-3 text-[12px] font-mono text-slate-700 shadow-sm">
+              {pendingPoint.lat.toFixed(6)}, {pendingPoint.lng.toFixed(6)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-[24px] border border-[#e7eee1] bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Waypoints</div>
-            <div className="mt-1 text-xs text-slate-500">{waypoints.length} points in current route</div>
+            <div className="text-sm font-semibold text-slate-900">🌱 Waypoints</div>
+            <div className="mt-1 text-xs text-slate-500">
+              {waypoints.length} points in current route
+            </div>
           </div>
 
           <button
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-full bg-[#f1d98c] px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:brightness-95 disabled:opacity-50"
             disabled={waypoints.length === 0}
             onClick={onClear}
           >
@@ -98,20 +109,31 @@ export default function WaypointEditorCard({
           </button>
         </div>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-3">
           {waypoints.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-4 text-xs text-slate-500 shadow-sm">
-              No waypoints
+            <div className="rounded-[20px] border border-dashed border-[#d9e5cf] bg-[#fbfcf8] px-4 py-6 text-center">
+              <div className="text-sm font-semibold text-slate-900">No waypoints yet</div>
+              <div className="mt-1 text-xs text-slate-500">
+                Click map to plant your first waypoint
+              </div>
             </div>
           ) : (
             waypoints.map((w, idx) => (
-              <div key={w.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-slate-700">#{idx + 1}</div>
+              <div
+                key={w.id}
+                className="rounded-[22px] border border-[#e7eee1] bg-[#fbfcf8] p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-800 shadow-sm">
+                      {idx + 1}
+                    </span>
+                    <div className="text-xs font-semibold text-slate-700">Waypoint {idx + 1}</div>
+                  </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
+                      className="rounded-full border border-[#d9e5cf] bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-[#f8fbf4] disabled:opacity-50"
                       disabled={idx === 0}
                       onClick={() => {
                         setWaypoints((prev) => {
@@ -126,7 +148,7 @@ export default function WaypointEditorCard({
                     </button>
 
                     <button
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50 disabled:opacity-50"
+                      className="rounded-full border border-[#d9e5cf] bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-[#f8fbf4] disabled:opacity-50"
                       disabled={idx === waypoints.length - 1}
                       onClick={() => {
                         setWaypoints((prev) => {
@@ -141,13 +163,13 @@ export default function WaypointEditorCard({
                     </button>
 
                     <button
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50"
+                      className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-rose-600 shadow-sm hover:bg-rose-50"
                       onClick={() => {
                         setWaypoints((prev) => prev.filter((x) => x.id !== w.id))
                         setRouteLineCleared()
                       }}
                     >
-                      Del
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -159,16 +181,16 @@ export default function WaypointEditorCard({
                     setWaypoints((prev) => prev.map((x) => (x.id === w.id ? { ...x, text: v } : x)))
                   }}
                   placeholder="(lat, lng) or address"
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-300"
+                  className="mt-3 w-full rounded-2xl border border-[#d9e5cf] bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#b8cfa8]"
                 />
 
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-mono text-slate-600">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="rounded-xl bg-white px-3 py-2 text-[12px] font-mono text-slate-700 shadow-sm">
                     {w.lat.toFixed(6)}, {w.lng.toFixed(6)}
                   </div>
 
                   <button
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] hover:bg-slate-50"
+                    className="rounded-full border border-[#d9e5cf] bg-white px-4 py-2 text-[11px] font-semibold text-slate-800 shadow-sm hover:bg-[#f8fbf4]"
                     onClick={async () => {
                       setStatus("")
                       const p = await resolveTextToPoint(w.text)
@@ -189,7 +211,7 @@ export default function WaypointEditorCard({
             ))
           )}
         </div>
-      </div>
+      </section>
     </section>
   )
 }

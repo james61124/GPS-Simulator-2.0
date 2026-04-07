@@ -72,119 +72,92 @@ export default function MainPageClient() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">GeoPort</h1>
-            <p className="mt-1 text-sm text-slate-600">Select device, connect, then use Single or Route mode</p>
-          </div>
+      <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className="rounded-[28px] border border-[#dfe7dc] bg-[#f6f4ea] px-5 py-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div>
+                <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">GeoPort 🌱</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Connect device, then switch between Single and Route mode
+                </p>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-3">
-            {!authLoading && !isAuthenticated && (
-              <button
-                onClick={() => router.push("/login")}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-              >
-                Login
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {!authLoading && !isAuthenticated && (
+                <button
+                  onClick={() => router.push("/login")}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+                >
+                  Login
+                </button>
+              )}
 
-            <div className="hidden md:flex items-center gap-2">
               <span
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-                  connected ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${
+                  connected ? "bg-emerald-100 text-emerald-800" : "bg-white text-slate-600"
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-slate-400"}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-500" : "bg-slate-400"}`} />
                 {connected ? "Connected" : "Not connected"}
               </span>
             </div>
           </div>
-        </div>
 
-        {!authLoading && !isAuthenticated && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Please log in with Google before using any feature
-          </div>
-        )}
-
-        <div className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          {locked && (
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              className="absolute inset-0 z-10 rounded-2xl bg-white/50 backdrop-blur-[1px]"
-              aria-label="Login required"
-            />
+          {!authLoading && !isAuthenticated && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Please log in with Google before using any feature
+            </div>
           )}
 
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="w-full md:max-w-2xl">
-              <label className="block text-sm font-medium text-slate-700">Device</label>
-              <div className="mt-2 flex gap-3">
-                <select
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
-                  value={selected ? `${selected.udid}::${selected.connType}` : ""}
-                  onChange={(e) => handleDeviceChange(e.target.value)}
-                  disabled={loading || deviceOptions.length === 0}
-                >
-                  {deviceOptions.length === 0 ? (
-                    <option value="">No devices</option>
-                  ) : (
-                    deviceOptions.map((d) => (
-                      <option key={`${d.udid}::${d.connType}`} value={`${d.udid}::${d.connType}`}>
-                        {d.label}
-                      </option>
-                    ))
-                  )}
-                </select>
+          <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="min-w-0 flex-1">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Device
+                </label>
 
-                <button
-                  onClick={handleRefresh}
-                  className="shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-                  disabled={loading}
-                >
-                  {loading ? "Refreshing…" : "Refresh"}
-                </button>
+                <div className="flex gap-2">
+                  <select
+                    className="w-full rounded-full border border-[#d9e5cf] bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-[#b8cfa8]"
+                    value={selected ? `${selected.udid}::${selected.connType}` : ""}
+                    onChange={(e) => handleDeviceChange(e.target.value)}
+                    disabled={loading || deviceOptions.length === 0}
+                  >
+                    {deviceOptions.length === 0 ? (
+                      <option value="">No devices</option>
+                    ) : (
+                      deviceOptions.map((d) => (
+                        <option key={`${d.udid}::${d.connType}`} value={`${d.udid}::${d.connType}`}>
+                          {d.label}
+                        </option>
+                      ))
+                    )}
+                  </select>
+
+                  <button
+                    onClick={handleRefresh}
+                    className="shrink-0 rounded-full border border-[#d9e5cf] bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-[#f8fbf4] disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    {loading ? "Refreshing…" : "Refresh"}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-3">
               <button
                 onClick={connect}
                 disabled={!selected || connecting}
-                className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+                className="shrink-0 rounded-full bg-[#7bc47f] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-50"
               >
                 {connecting ? "Connecting…" : "Connect"}
               </button>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => handleModeChange("single")}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold shadow-sm ${
-                mode === "single"
-                  ? "bg-slate-900 text-white"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              Single
-            </button>
-            <button
-              onClick={() => handleModeChange("route")}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold shadow-sm ${
-                mode === "route"
-                  ? "bg-slate-900 text-white"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              Route
-            </button>
-          </div>
-
           {status && (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+            <div className="mt-4 rounded-2xl border border-[#e7eee1] bg-white/80 px-4 py-3 text-sm text-slate-700">
               {status}
             </div>
           )}
@@ -195,15 +168,27 @@ export default function MainPageClient() {
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="absolute inset-0 z-10 mt-6 rounded-2xl bg-white/50 backdrop-blur-[1px]"
+              className="absolute inset-0 z-10 mt-6 rounded-[28px] bg-white/50 backdrop-blur-[1px]"
               aria-label="Login required panels"
             />
           )}
 
           {mode === "single" ? (
-            <SinglePanel connected={connected} status={status} setStatus={setStatus} />
+            <SinglePanel
+              connected={connected}
+              status={status}
+              setStatus={setStatus}
+              mode={mode}
+              onModeChange={handleModeChange}
+            />
           ) : (
-            <RoutePanel connected={connected} status={status} setStatus={setStatus} />
+            <RoutePanel
+              connected={connected}
+              status={status}
+              setStatus={setStatus}
+              mode={mode}
+              onModeChange={handleModeChange}
+            />
           )}
         </div>
       </div>
