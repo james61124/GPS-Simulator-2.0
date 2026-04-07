@@ -77,7 +77,7 @@ export default function MainPageClient() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <div>
-                <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">GeoPort 🌱</h1>
+                <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">SprytePath 🌱</h1>
                 <p className="mt-1 text-sm text-slate-600">
                   Connect device, then switch between Single and Route mode
                 </p>

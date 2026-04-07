@@ -1,8 +1,8 @@
-# SproutPath 🌱
+# SprytePath 🌱
 
-SproutPath is a hybrid GPS simulation system designed for route-based location testing and device control.
+SprytePath is a hybrid GPS simulation system designed for route-based location testing and device control.
 
-Instead of manually setting coordinates, SproutPath lets you:
+Instead of manually setting coordinates, SprytePath lets you:
 
 - 🌱 Plant waypoints  
 - 🌿 Grow routes  
@@ -12,7 +12,7 @@ Instead of manually setting coordinates, SproutPath lets you:
 
 ## 🧠 Architecture Overview
 
-SproutPath is **not a pure SaaS application**. It is a hybrid system combining cloud services with a local device agent.
+SprytePath is **not a pure SaaS application**. It is a hybrid system combining cloud services with a local device agent.
 
 ~~~
 Frontend (Next.js UI)
@@ -56,7 +56,7 @@ FastAPI (Local Device Agent)
 
 ## 🔐 Authentication
 
-SproutPath uses **session-based authentication (NOT JWT)**
+SprytePath uses **session-based authentication (NOT JWT)**
 
 ~~~
 1. User logs in with Google (frontend)
@@ -272,7 +272,7 @@ docker exec -it frontend sh
 
 ## 🧠 Core Idea
 
-SproutPath is built around a simple mental model:
+SprytePath is built around a simple mental model:
 
 ~~~
 Plant points → Grow routes → Simulate movement
