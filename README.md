@@ -124,6 +124,7 @@ Open another terminal:
 
 ~~~
 cd backend
+pip install -r device_service/requirements.txt
 sudo uvicorn device_service.main:app --host 127.0.0.1 --port 9100
 ~~~
 
