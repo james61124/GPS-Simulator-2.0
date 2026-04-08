@@ -72,6 +72,7 @@ Rename the following files:
 - `backend/device_service/.env.example` → `.env`
 - `backend/gpsSimulator/.env.example` → `.env`
 - `.env.example` → `.env`
+- `frontend/gps-sim/.env.example` -> `.env.local`
 
 Then fill in:
 
@@ -88,6 +89,12 @@ Then fill in:
   ```
 
 - root `.env`
+  ```
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id
+  GOOGLE_CLIENT_ID=your_client_id
+  ```
+
+- `frontend/gps-sim/.env.local`
   ```
   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id
   GOOGLE_CLIENT_ID=your_client_id
