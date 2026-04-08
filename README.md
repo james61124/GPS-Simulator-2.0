@@ -17,6 +17,7 @@ Before getting started, make sure you have:
 - Docker
 - Uvicorn
 - Google Maps API Key (there is a free quota)
+- Google OAuth API Key
 
 To obtain the Google Maps API key:
 
