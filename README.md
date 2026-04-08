@@ -10,6 +10,125 @@ Instead of manually setting coordinates, SprytePath lets you:
 
 ---
 
+## 📦 Requirements
+
+Before getting started, make sure you have:
+
+- Docker
+- Uvicorn
+- Google Maps API Key (there is a free quota)
+
+To obtain the Google Maps API key:
+
+1. Go to Google Cloud
+2. Enable the following APIs:
+   - Geocoding API
+   - Directions API
+3. Create an API key
+
+---
+
+## 🔐 Google OAuth Setup
+
+### 1. Configure OAuth Consent Screen
+
+Go to Google Cloud → OAuth consent screen:
+
+- User Type: External  
+- App Name: any (e.g., GPS Simulator)  
+- User Support Email: your email  
+- Developer Contact Information: your email  
+- Test Users: add your email  
+
+---
+
+### 2. Create OAuth Credentials
+
+Go to Credentials → Create Credentials → OAuth Client ID:
+
+- Application Type: Web application  
+- Authorized JavaScript origins:
+  ```
+  http://localhost:3000
+  ```
+- Authorized redirect URIs:
+  ```
+  http://localhost:3000
+  ```
+
+After creation, you will get:
+
+```
+Client ID: xxxxx.apps.googleusercontent.com
+```
+
+---
+
+## 🔑 Environment Setup
+
+Rename the following files:
+
+- `backend/device_service/.env.example` → `.env`
+- `backend/gpsSimulator/.env.example` → `.env`
+- `.env.example` → `.env`
+
+Then fill in:
+
+### Google Maps API Key
+- `backend/device_service/.env`
+  ```
+  GOOGLE_MAPS_API_KEY=your_api_key
+  ```
+
+### Google OAuth Client ID
+- `backend/gpsSimulator/.env`
+  ```
+  GOOGLE_CLIENT_ID=your_client_id
+  ```
+
+- root `.env`
+  ```
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id
+  GOOGLE_CLIENT_ID=your_client_id
+  ```
+
+---
+
+## ⚙️ Setup & Run
+
+### 1. Start infrastructure (Docker)
+
+~~~
+sudo docker compose --env-file .env up -d
+~~~
+
+This starts:
+- MariaDB  
+- Django backend  
+- Next.js frontend  
+- Nginx  
+
+---
+
+### 2. Start local device agent
+
+Open another terminal:
+
+~~~
+cd backend
+sudo uvicorn device_service.main:app --host 127.0.0.1 --port 9100
+~~~
+
+---
+
+### 3. Open the app
+
+~~~
+http://localhost:3000
+~~~
+
+---
+
 ## 🧠 Architecture Overview
 
 SprytePath is **not a pure SaaS application**. It is a hybrid system combining cloud services with a local device agent.
@@ -121,43 +240,6 @@ Stores authenticated users
 - Overlay panel (not side-by-side layout)
 - Minimal UI (no heavy cards)
 - Flow-based interaction instead of dashboard blocks
-
----
-
-## ⚙️ Setup & Run
-
-### 1. Start infrastructure (Docker)
-
-~~~
-sudo docker compose --env-file .env up -d
-~~~
-
-This starts:
-- MariaDB
-- Django backend
-- Next.js frontend
-- Nginx
-
----
-
-### 2. Start local device agent
-
-Open another terminal:
-
-~~~
-cd backend
-sudo uvicorn device_service.main:app --host 127.0.0.1 --port 9100
-~~~
-
----
-
-### 3. Open the app
-
-~~~
-http://localhost:3000
-~~~
-
----
 
 ## 🔌 API Overview
 
