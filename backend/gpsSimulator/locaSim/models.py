@@ -1,4 +1,26 @@
 from django.db import models
+import secrets
+from datetime import timedelta
+from django.utils import timezone
+
+class DesktopLoginTicket(models.Model):
+    ticket = models.CharField(max_length=128, unique=True, db_index=True)
+    user = models.ForeignKey("AppUser", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def issue(cls, user, ttl_seconds=300):
+        return cls.objects.create(
+            ticket=secrets.token_urlsafe(48),
+            user=user,
+            expires_at=timezone.now() + timedelta(seconds=ttl_seconds),
+        )
+
+    @property
+    def is_valid(self):
+        return self.consumed_at is None and timezone.now() < self.expires_at
 
 
 class AppUser(models.Model):

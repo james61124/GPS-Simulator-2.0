@@ -3,9 +3,9 @@
 
 import dynamic from "next/dynamic"
 import { useState } from "react"
-import { callBackend } from "@/lib/api"
 import { resolveTextToPoint, type LatLng } from "@/lib/geo"
 import WorkspaceTopLeft from "@/components/WorkspaceTopLeft"
+import { callLocal } from "@/lib/api"
 
 const MapView = dynamic(() => import("./Map"), { ssr: false })
 
@@ -66,12 +66,12 @@ export default function SinglePanel({
     setStatus("")
 
     try {
-      await callBackend<any>("/api/update_location", {
+      await callLocal<any>("/api/update_location", {
         method: "POST",
         body: JSON.stringify({ lat: loc.lat, lng: loc.lng }),
       })
 
-      await callBackend<any>("/api/simulate_location", { method: "POST" })
+      await callLocal<any>("/api/simulate_location", { method: "POST" })
 
       setSimulating(true)
       setStatus("Simulating")
@@ -86,7 +86,7 @@ export default function SinglePanel({
   async function stopSim() {
     setStatus("")
     try {
-      await callBackend<any>("/api/location/stop", { method: "POST" })
+      await callLocal<any>("/api/location/stop", { method: "POST" })
       setSimulating(false)
       setStatus("Stopped")
     } catch (e: any) {

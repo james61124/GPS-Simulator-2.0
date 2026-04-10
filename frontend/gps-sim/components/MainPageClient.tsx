@@ -3,11 +3,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { callBackend } from "@/lib/api"
 import { useDevices } from "@/hooks/useDevices"
 import { useAuthGuard } from "@/hooks/useAuthGuard"
 import SinglePanel from "@/components/SinglePanel"
 import RoutePanel from "@/components/RoutePanel"
+import { callLocal } from "@/lib/api"
+import { useEffect } from "react"
 
 export default function MainPageClient() {
   const router = useRouter()
@@ -18,6 +19,21 @@ export default function MainPageClient() {
   const [connecting, setConnecting] = useState(false)
 
   const { loading, status, setStatus, deviceOptions, selected, setSelected, refresh } = useDevices()
+
+  useEffect(() => {
+    async function testHealth() {
+      try {
+        const data = await callLocal<{ ok: boolean }>("/health", {
+          method: "GET",
+        })
+        console.log("local health:", data)
+      } catch (err) {
+        console.error("local health failed:", err)
+      }
+    }
+
+    testHealth()
+  }, [])
 
   async function handleRefresh() {
     if (!requireLogin()) return
@@ -36,7 +52,7 @@ export default function MainPageClient() {
     setStatus("")
 
     try {
-      await callBackend<any>("/api/connect", {
+      await callLocal<any>("/api/connect", {
         method: "POST",
         body: JSON.stringify({
           udid: selected.udid,

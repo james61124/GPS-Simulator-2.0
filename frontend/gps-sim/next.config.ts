@@ -1,19 +1,14 @@
-/** @type {import("next").NextConfig} */
-const internalDjango =
-  process.env.INTERNAL_DJANGO_URL ||
-  process.env.BACKEND_URL ||
-  "http://127.0.0.1:8000"
+import type { NextConfig } from "next"
 
-const nextConfig = {
-  async rewrites() {
-    const base = String(internalDjango).replace(/\/$/, "")
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${base}/api/:path*`,
-      },
-    ]
+const isProd = process.env.NODE_ENV === "production"
+const internalHost = process.env.TAURI_DEV_HOST || "localhost"
+
+const nextConfig: NextConfig = {
+  output: "export",
+  images: {
+    unoptimized: true,
   },
+  assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
 }
 
-module.exports = nextConfig
+export default nextConfig

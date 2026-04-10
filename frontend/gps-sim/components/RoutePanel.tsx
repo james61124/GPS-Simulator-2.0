@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { callBackend } from "@/lib/api"
 import { resolveTextToPoint, type LatLng } from "@/lib/geo"
 import type { Waypoint as MapWaypoint } from "@/components/MapRoute"
 import {
@@ -34,6 +33,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { callCloud, callLocal } from "@/lib/api"
 
 
 
@@ -389,7 +389,7 @@ export default function RoutePanel({
     if (!opts?.silent) setStatus("")
 
     try {
-      const resp = await callBackend<RoutePreviewResponse>("/api/location/route/preview", {
+      const resp = await callLocal<RoutePreviewResponse>("/api/location/route/preview", {
         method: "POST",
         body: JSON.stringify({
           points: points.map((w) => ({ lat: w.lat, lng: w.lng })),
@@ -429,7 +429,7 @@ export default function RoutePanel({
     setRouteBusy(true)
     setStatus("")
     try {
-      await callBackend<any>("/api/location/route/simulate", {
+      await callLocal<any>("/api/location/route/simulate", {
         method: "POST",
         body: JSON.stringify({
           points: routePointsPayload(),
@@ -454,7 +454,7 @@ export default function RoutePanel({
     setRouteBusy(true)
     setStatus("")
     try {
-      await callBackend<any>("/api/location/route/stop", { method: "POST" })
+      await callLocal<any>("/api/location/route/stop", { method: "POST" })
       setRouteRunning(false)
       setStatus("Route stopped")
     } catch (e: any) {
@@ -504,7 +504,7 @@ export default function RoutePanel({
 
   async function handleUpdateById(id: number) {
     try {
-      await callBackend(`/api/saved-routes/${id}`, {
+      await callCloud(`/api/saved-routes/${id}`, {
         method: "PUT",
         body: JSON.stringify({
           name: routeName,

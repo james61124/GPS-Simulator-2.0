@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { callBackend } from "@/lib/api"
+import { callLocal } from "@/lib/api"
 
 export type DeviceInfo = {
   Identifier: string
@@ -60,7 +60,7 @@ export function useDevices() {
     setStatus("")
     setLoading(true)
     try {
-      const data = await callBackend<DevicesResponse>("/api/devices", { method: "GET" })
+      const data = await callLocal<DevicesResponse>("/api/devices", { method: "GET" })
       setDevicesRaw(data)
 
       if (!selected) {

@@ -1,5 +1,5 @@
-// app/lib/savedRoutes.ts
-import { callBackend } from "@/lib/api"
+// lib/savedRoutes.ts
+import { callCloud } from "@/lib/api"
 
 export type SavedRouteWaypoint = {
   id: number
@@ -53,21 +53,24 @@ export type SaveRoutePayload = {
 }
 
 export async function listSavedRoutes(): Promise<SavedRouteSummary[]> {
-  const res = await callBackend<{ routes: SavedRouteSummary[] }>("/api/saved-routes", {
+  const res = await callCloud<{ routes: SavedRouteSummary[] }>("/api/saved-routes", {
     method: "GET",
   })
   return res.routes
 }
 
 export async function getSavedRoute(routeId: number): Promise<SavedRouteDetail> {
-  const res = await callBackend<{ route: SavedRouteDetail }>(`/api/saved-routes/${routeId}`, {
-    method: "GET",
-  })
+  const res = await callCloud<{ ok: boolean; route: SavedRouteDetail }>(
+    `/api/saved-routes/${routeId}`,
+    {
+      method: "GET",
+    }
+  )
   return res.route
 }
 
 export async function createSavedRoute(payload: SaveRoutePayload): Promise<SavedRouteDetail> {
-  const res = await callBackend<{ ok: boolean; route: SavedRouteDetail }>("/api/saved-routes", {
+  const res = await callCloud<{ ok: boolean; route: SavedRouteDetail }>("/api/saved-routes", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -76,17 +79,20 @@ export async function createSavedRoute(payload: SaveRoutePayload): Promise<Saved
 
 export async function updateSavedRoute(
   routeId: number,
-  payload: SaveRoutePayload,
+  payload: SaveRoutePayload
 ): Promise<SavedRouteDetail> {
-  const res = await callBackend<{ ok: boolean; route: SavedRouteDetail }>(`/api/saved-routes/${routeId}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  })
+  const res = await callCloud<{ ok: boolean; route: SavedRouteDetail }>(
+    `/api/saved-routes/${routeId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }
+  )
   return res.route
 }
 
 export async function deleteSavedRoute(routeId: number): Promise<void> {
-  await callBackend<{ ok: boolean }>(`/api/saved-routes/${routeId}`, {
+  await callCloud<{ ok: boolean }>(`/api/saved-routes/${routeId}`, {
     method: "DELETE",
   })
 }

@@ -14,6 +14,13 @@ from google.auth.transport import requests as google_requests
 
 from .models import AppUser, SavedRoute, SavedRouteWaypoint
 
+import requests
+from urllib.parse import urlencode
+from django.http import HttpResponseRedirect
+from django.utils import timezone
+
+from .models import AppUser, SavedRoute, SavedRouteWaypoint, DesktopLoginTicket
+
 log = logging.getLogger("walksim.api")
 
 DEVICE_SERVICE_URL = getattr(
@@ -561,3 +568,147 @@ def saved_route_detail(request, route_id: int):
     except Exception as e:
         log.exception(f"update saved route failed err={e}")
         return JsonResponse({"error": "failed to update route"}, status=500)
+
+@require_http_methods(["GET"])
+def auth_desktop_start(request):
+    rid = _request_id(request)
+
+    if not settings.GOOGLE_CLIENT_ID:
+        return JsonResponse({"error": "GOOGLE_CLIENT_ID is not configured", "request_id": rid}, status=500)
+    if not getattr(settings, "GOOGLE_CLIENT_SECRET", ""):
+        return JsonResponse({"error": "GOOGLE_CLIENT_SECRET is not configured", "request_id": rid}, status=500)
+
+    redirect_uri = request.build_absolute_uri("/api/auth/desktop/callback")
+
+    params = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "select_account",
+    }
+
+    return HttpResponseRedirect(
+        "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
+    )
+
+
+@require_http_methods(["GET"])
+def auth_desktop_callback(request):
+    rid = _request_id(request)
+    code = request.GET.get("code")
+
+    if not code:
+        return JsonResponse({"error": "missing code", "request_id": rid}, status=400)
+
+    redirect_uri = request.build_absolute_uri("/api/auth/desktop/callback")
+
+    try:
+        token_res = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=15,
+        )
+    except Exception as e:
+        log.exception(f"[{rid}] token exchange failed err={e}")
+        return JsonResponse({"error": "token exchange failed", "request_id": rid}, status=502)
+
+    if not token_res.ok:
+        return JsonResponse({"error": "token exchange failed", "request_id": rid}, status=401)
+
+    token_data = token_res.json()
+    id_token_str = token_data.get("id_token")
+    if not id_token_str:
+        return JsonResponse({"error": "missing id_token", "request_id": rid}, status=401)
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            id_token_str,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except Exception as e:
+        log.exception(f"[{rid}] desktop google token verify failed err={e}")
+        return JsonResponse({"error": "invalid Google ID token", "request_id": rid}, status=401)
+
+    issuer = idinfo.get("iss")
+    if issuer not in ["accounts.google.com", "https://accounts.google.com"]:
+        return JsonResponse({"error": "invalid issuer", "request_id": rid}, status=401)
+
+    google_sub = idinfo.get("sub")
+    email = idinfo.get("email")
+    name = idinfo.get("name")
+    picture = idinfo.get("picture")
+    email_verified = bool(idinfo.get("email_verified"))
+
+    if not google_sub or not email:
+        return JsonResponse({"error": "missing required Google user fields", "request_id": rid}, status=400)
+
+    try:
+        db_user, created = AppUser.objects.update_or_create(
+            google_sub=google_sub,
+            defaults={
+                "email": email,
+                "name": name,
+                "picture_url": picture,
+                "email_verified": email_verified,
+                "is_active": True,
+            },
+        )
+    except Exception as e:
+        log.exception(f"[{rid}] failed to save user err={e}")
+        return JsonResponse({"error": "failed to save user", "request_id": rid}, status=500)
+
+    login_ticket = DesktopLoginTicket.issue(db_user, ttl_seconds=300)
+
+    log.info(f"[{rid}] desktop oauth success email={db_user.email} created={created}")
+
+    return HttpResponseRedirect(
+        f"http://127.0.0.1:9100/auth/complete?ticket={login_ticket.ticket}"
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def auth_desktop_exchange(request):
+    rid = _request_id(request)
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"error": "invalid json", "request_id": rid}, status=400)
+
+    ticket_value = body.get("ticket")
+    if not ticket_value:
+        return JsonResponse({"error": "missing ticket", "request_id": rid}, status=400)
+
+    try:
+        login_ticket = DesktopLoginTicket.objects.select_related("user").get(ticket=ticket_value)
+    except DesktopLoginTicket.DoesNotExist:
+        return JsonResponse({"error": "ticket not found", "request_id": rid}, status=404)
+
+    if not login_ticket.is_valid:
+        return JsonResponse({"error": "ticket expired or consumed", "request_id": rid}, status=401)
+
+    db_user = login_ticket.user
+    session_user = _serialize_user(db_user)
+
+    request.session["authenticated"] = True
+    request.session["user_id"] = db_user.id
+    request.session["user"] = session_user
+    request.session.set_expiry(60 * 60 * 24 * 7)
+
+    login_ticket.consumed_at = timezone.now()
+    login_ticket.save(update_fields=["consumed_at"])
+
+    return JsonResponse({
+        "authenticated": True,
+        "user": session_user,
+    })

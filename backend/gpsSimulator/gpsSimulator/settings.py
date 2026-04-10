@@ -36,10 +36,12 @@ DEVICE_SERVICE_URL = (
 ).rstrip("/")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or os.getenv("NEXT_PUBLIC_GOOGLE_CLIENT_ID") or ""
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 _DEFAULT_FRONTEND_ORIGINS = (
     "http://localhost:3000,http://127.0.0.1:3000,"
-    "http://localhost:8080,http://127.0.0.1:8080"
+    "http://localhost:8080,http://127.0.0.1:8080,"
+    "tauri://localhost"
 )
 CORS_ALLOWED_ORIGINS = _csv_env("FRONTEND_ORIGINS", _DEFAULT_FRONTEND_ORIGINS)
 

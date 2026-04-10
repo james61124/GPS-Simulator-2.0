@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { callCloud } from "@/lib/api"
 
 type SessionResponse = {
   authenticated: boolean
@@ -24,21 +25,9 @@ export function useAuthGuard() {
 
     async function checkSession() {
       try {
-        const res = await fetch("/api/auth/session", {
+        const data = await callCloud<SessionResponse>("/api/auth/session", {
           method: "GET",
-          credentials: "include",
-          cache: "no-store",
         })
-
-        if (!res.ok) {
-          if (!cancelled) {
-            setIsAuthenticated(false)
-            setLoading(false)
-          }
-          return
-        }
-
-        const data: SessionResponse = await res.json()
 
         if (!cancelled) {
           setIsAuthenticated(!!data.authenticated)

@@ -1,19 +1,31 @@
-// lib/auth-client.ts
-export async function loginWithGoogleIdToken(idToken: string) {
-  const res = await fetch("/api/auth/google", {
+import { callCloud, callLocal, CLOUD_API_BASE } from "@/lib/api"
+import { openUrl } from "@tauri-apps/plugin-opener"
+
+export async function startDesktopLogin() {
+  await openUrl(`${CLOUD_API_BASE}/api/auth/desktop/start`)
+}
+
+export async function pollDesktopLoginTicket() {
+  return callLocal<{ ticket: string | null }>("/auth/pending", {
+    method: "GET",
+  })
+}
+
+export async function exchangeDesktopLogin(ticket: string) {
+  const data = await callCloud("/api/auth/desktop/exchange", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ ticket }),
   })
 
-  const data = await res.json().catch(() => ({}))
-
-  if (!res.ok) {
-    throw new Error(data?.error || "Login failed")
-  }
+  await callLocal("/auth/clear", {
+    method: "POST",
+  })
 
   return data
+}
+
+export async function logout() {
+  return callCloud("/api/auth/logout", {
+    method: "POST",
+  })
 }
