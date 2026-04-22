@@ -133,7 +133,9 @@ sudo uvicorn device_service.main:app --host 127.0.0.1 --port 9100
 ### 3. Open the app
 
 ~~~
-http://localhost:3000
+cd frontend/gps-sim
+npm install
+npm run tauri:dev
 ~~~
 
 ---

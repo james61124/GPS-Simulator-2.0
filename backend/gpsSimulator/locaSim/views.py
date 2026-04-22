@@ -13,6 +13,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 from .models import AppUser, SavedRoute, SavedRouteWaypoint
+from .auth_utils import app_login_required
 
 import requests
 from urllib.parse import urlencode
@@ -373,6 +374,7 @@ def auth_logout(request):
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
+# @app_login_required
 def saved_routes(request):
     user, auth_error = _require_login(request)
     if auth_error:
@@ -464,6 +466,7 @@ def saved_routes(request):
 
 @csrf_exempt
 @require_http_methods(["GET", "PUT", "DELETE"])
+# @app_login_required
 def saved_route_detail(request, route_id: int):
     user, auth_error = _require_login(request)
     if auth_error:

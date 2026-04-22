@@ -66,12 +66,12 @@ export default function SinglePanel({
     setStatus("")
 
     try {
-      await callLocal<any>("/api/update_location", {
+      await callLocal<any>("/location/update", {
         method: "POST",
         body: JSON.stringify({ lat: loc.lat, lng: loc.lng }),
       })
 
-      await callLocal<any>("/api/simulate_location", { method: "POST" })
+      await callLocal<any>("/location/simulate", { method: "POST" })
 
       setSimulating(true)
       setStatus("Simulating")
@@ -86,7 +86,7 @@ export default function SinglePanel({
   async function stopSim() {
     setStatus("")
     try {
-      await callLocal<any>("/api/location/stop", { method: "POST" })
+      await callLocal<any>("/location/stop", { method: "POST" })
       setSimulating(false)
       setStatus("Stopped")
     } catch (e: any) {

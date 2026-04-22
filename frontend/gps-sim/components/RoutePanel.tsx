@@ -389,7 +389,7 @@ export default function RoutePanel({
     if (!opts?.silent) setStatus("")
 
     try {
-      const resp = await callLocal<RoutePreviewResponse>("/api/location/route/preview", {
+      const resp = await callLocal<RoutePreviewResponse>("/location/route/preview", {
         method: "POST",
         body: JSON.stringify({
           points: points.map((w) => ({ lat: w.lat, lng: w.lng })),
@@ -429,7 +429,7 @@ export default function RoutePanel({
     setRouteBusy(true)
     setStatus("")
     try {
-      await callLocal<any>("/api/location/route/simulate", {
+      await callLocal<any>("/location/route/simulate", {
         method: "POST",
         body: JSON.stringify({
           points: routePointsPayload(),
@@ -454,7 +454,7 @@ export default function RoutePanel({
     setRouteBusy(true)
     setStatus("")
     try {
-      await callLocal<any>("/api/location/route/stop", { method: "POST" })
+      await callLocal<any>("/location/route/stop", { method: "POST" })
       setRouteRunning(false)
       setStatus("Route stopped")
     } catch (e: any) {
